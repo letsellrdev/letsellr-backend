@@ -2,7 +2,7 @@ import express from 'express';
 import { findproperty, addproperty, updateproperty, deleteproperty } from '../controller/propertycontroller.js';
 import { propertylist } from '../controller/listingcontroller.js';
 import { adminmiddle } from '../middleware/adminmiddleware.js';
-import { generateLocalUploadURL, handleLocalUpload } from '../middlewares/localUpload.js';
+import generateUploadURL from '../middlewares/s3upload.js';
 
 const propertyrouter = express.Router();
 
@@ -11,8 +11,7 @@ propertyrouter.get("/", propertylist);
 propertyrouter.get("/:id", findproperty);
 
 // Upload routes (public - no auth needed for file upload)
-propertyrouter.post("/upload-url", generateLocalUploadURL);
-propertyrouter.put("/upload-local/:filename", handleLocalUpload);
+propertyrouter.post("/upload-url", generateUploadURL);
 
 // Protected routes (require admin auth)
 propertyrouter.use("/", adminmiddle);

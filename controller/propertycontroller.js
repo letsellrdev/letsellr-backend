@@ -72,7 +72,7 @@ export const addproperty = async (req, res) => {
       location: sanitizedLocation,
       category: sanitizedCategory,
       amenity,
-      images, // Array of local URLs
+      images, // Array of S3 URLs
       price: price || [], // save price array
       contactNumber,
       propertyType,
