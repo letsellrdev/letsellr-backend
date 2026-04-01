@@ -1,0 +1,27 @@
+name: Deploy backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: github.repository == 'mastrovia/letsellr-backend'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Generate SSH key
+        run: |
+          echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/secret.pem
+          chmod 600 ~/secret.pem
+
+      - name: Copy build files
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=accept-new -i ~/secret.pem" \
+            --exclude='.*' \
+            ./ ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:letsellr-backend/
+        #   scp -o StrictHostKeyChecking=accept-new -i "~/secret.pem" -r . ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:letsellr-backend/
+  
