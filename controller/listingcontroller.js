@@ -33,6 +33,7 @@ export const categorylist = async (req, res) => {
 };
 
 export const propertylist = async (req, res) => {
+  console.log(req.query)
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 100;
@@ -110,6 +111,16 @@ export const propertylist = async (req, res) => {
           path: "$propertyTypeCategory",
           preserveNullAndEmptyArrays: true,
         },
+      },
+      {
+        $addFields: {
+          basePrice: {
+            $ifNull: [
+              { $min: "$price.amount" },
+              9999999 // Fallback for properties without prices
+            ]
+          }
+        }
       }
     );
     if (category) {
@@ -130,11 +141,14 @@ export const propertylist = async (req, res) => {
       }
     }
 
-    const finalSort = { vacancyCount: -1 };
-    if (Object.keys(sortOption).length) {
-      Object.assign(finalSort, sortOption);
+    const finalSort = {};
+    if (sortOption.price) {
+      finalSort.basePrice = sortOption.price;
+      finalSort.vacancyCount = -1;
+    } else {
+      finalSort.vacancyCount = -1;
     }
-    finalSort.createdAt = -1; // Sort by creation date (newest first)
+    finalSort.createdAt = -1; 
 
     const dataPipeline = [
       ...pipelineBase,

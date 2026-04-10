@@ -63,7 +63,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use("/alive", (res) => res.send("Yep, i am alive (letsellr backend)"));
+app.use("/alive", (req, res) => res.send("Yep, i am alive (letsellr backend)"));
 
 // Routes
 // app.use("/letseller/show", listing); // Removed

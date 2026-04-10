@@ -34,7 +34,7 @@ jobs:
             
             # 4. Restart the Express server
             # We use the name 'letsellr-backend' to match your PM2 process
-            pm2 restart app.js || pm2 start app.js --name "node app.js"
-            
+            pm2 restart letsellr-backend || pm2 start app.js --name "letsellr-backend"
+
             # 5. Keep the process list updated for reboots
             pm2 save
