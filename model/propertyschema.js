@@ -24,7 +24,7 @@ const model = new schema({
   price: [
     {
       type: {
-        type: String, // e.g., "4 shared", "3 shared", "single room"
+        type: String, // e.g., "4 shared", "3 shared", "sishared", "single"
         required: true,
       },
       amount: {
