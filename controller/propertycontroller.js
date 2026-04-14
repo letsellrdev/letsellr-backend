@@ -11,12 +11,16 @@ const s3 = new AWS.S3({
 });
 
 // ============ GENERATE UNIQUE PROPERTY CODE ============
+// ============ GENERATE UNIQUE PROPERTY CODE ============
 const generateUniquePropertyCode = async () => {
+  const start = Date.now();
   let code;
   let isUnique = false;
+  let attempts = 0;
 
   // Generate a random 4-5 digit code and check uniqueness
-  while (!isUnique) {
+  while (!isUnique && attempts < 10) {
+    attempts++;
     // Generate random 4 or 5 digit number
     const length = Math.random() > 0.5 ? 5 : 4;
     const min = length === 4 ? 1000 : 10000;
@@ -25,17 +29,26 @@ const generateUniquePropertyCode = async () => {
     code = code.toString();
 
     // Check if code already exists
-    const existing = await property.findOne({ propertyCode: code });
+    const existing = await property.findOne({ propertyCode: code }).select('_id').lean();
     if (!existing) {
       isUnique = true;
     }
   }
 
+  if (!isUnique) {
+    // Fallback if random attempts fail (extremely unlikely)
+    code = Date.now().toString().slice(-6);
+  }
+
+  console.log(`[Performance] generateUniquePropertyCode took ${Date.now() - start}ms (attempts: ${attempts})`);
   return code;
 };
 
 // ============ ADD PROPERTY ============
 export const addproperty = async (req, res) => {
+  const startTime = Date.now();
+  console.log("[Performance] Starting addproperty request");
+
   try {
     const {
       title,
@@ -63,15 +76,28 @@ export const addproperty = async (req, res) => {
     const sanitizedPropertyTypeCategory = propertyTypeCategory && propertyTypeCategory !== "" ? propertyTypeCategory : undefined;
 
     // Generate unique property code if not provided
-    const finalPropertyCode = propertyCode && propertyCode.trim() !== "" 
-      ? propertyCode 
-      : await generateUniquePropertyCode();
+    console.log("[Performance] Checking property code need");
+    const codeStart = Date.now();
+    let finalPropertyCode;
+    if (propertyCode && propertyCode.trim() !== "") {
+      finalPropertyCode = propertyCode;
+      // If manual code provided, verify uniqueness to prevent DB crash later
+      const existing = await property.findOne({ propertyCode: finalPropertyCode }).select('_id').lean();
+      if (existing) {
+        return res.status(400).json({ message: "Provided property code already exists" });
+      }
+    } else {
+      finalPropertyCode = await generateUniquePropertyCode();
+    }
+    console.log(`[Performance] Property code resolution took ${Date.now() - codeStart}ms`);
     
     // Validate length if provided manually
     if (propertyCode && (propertyCode.length < 4 || propertyCode.length > 6)) {
        // Optional: could add validation here, but sticking to fixing the bug first
     }
 
+    console.log("[Performance] Creating property in DB");
+    const dbStart = Date.now();
     const createproperty = await property.create({
       propertyCode: finalPropertyCode,
       title,
@@ -87,10 +113,15 @@ export const addproperty = async (req, res) => {
       vacancies: vacancies || [],
       vacancyCount: vacancies ? vacancies.reduce((sum, v) => sum + (parseInt(v.count) || 0), 0) : (vacancyCount !== undefined ? vacancyCount : 0),
     });
+    console.log(`[Performance] DB property.create took ${Date.now() - dbStart}ms`);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[Performance] Total addproperty execution time: ${totalTime}ms`);
 
     res.json({
       message: "Property added successfully",
       property: createproperty,
+      performance: { totalTime }
     });
   } catch (err) {
     console.error(err, 'error from add property');

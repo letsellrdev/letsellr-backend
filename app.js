@@ -53,10 +53,17 @@ app.use((req, res, next) => {
 // Session + store
 app.use(
   session({
+    name: "letsellr_admin_sid",
     secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.URI }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      secure: false, // Set to true if using HTTPS
+      httpOnly: true,
+      sameSite: "lax",
+    },
   })
 );
 

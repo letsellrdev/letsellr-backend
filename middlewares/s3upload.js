@@ -3,6 +3,14 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { config } from "dotenv";
 config();
 
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
 const generateUploadURL = async (req, res) => {
   try {
     const { files } = req.body;
@@ -12,14 +20,6 @@ const generateUploadURL = async (req, res) => {
     if (!files || !Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ message: "Files array is required" });
     }
-
-    const s3 = new S3Client({
-      region: process.env.AWS_REGION,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      },
-    });
 
     const urls = files.map(async (file) => {
       if (!file.name || !file.type) {

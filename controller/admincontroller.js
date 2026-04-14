@@ -52,7 +52,7 @@ const adminLogout = async (req, res) => {
         console.error(err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.clearCookie("connect.sid");
+      res.clearCookie("letsellr_admin_sid");
       return res.status(200).json({ message: "Logout successful", success: true });
     });
   } catch (err) {
