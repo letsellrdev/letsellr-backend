@@ -12,7 +12,7 @@ const s3 = new AWS.S3({
 export const addCategory = async (req, res) => {
   try {
     console.log(req.body);
-    const createcategory = await category.insertOne(req.body, { new: true });
+    const createcategory = await category.create(req.body);
     console.log(createcategory);
     return res.status(200).json({
       mesaage: "category added successfully",

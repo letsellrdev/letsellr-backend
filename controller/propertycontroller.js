@@ -229,18 +229,33 @@ export const deleteproperty = async (req, res) => {
 export const findproperty = async (req, res) => {
   try {
     const propertyid = req.params.id;
+
+    // Validate ObjectId to prevent BSONError (500)
+    if (!mongoose.Types.ObjectId.isValid(propertyid)) {
+      return res.status(400).json({
+        message: "Invalid property ID format",
+        success: false,
+      });
+    }
+
     const showproperty = await property
       .findById(propertyid)
       .populate("category", "name description image")
       .populate("location", "title googleMapUrl importantLocation")
       .populate("propertyTypeCategory", "name description");
 
-    if (!showproperty) return res.status(404).json({ message: "Property not found", success: false });
+    if (!showproperty) {
+      return res.status(404).json({
+        message: "Property not found",
+        success: false,
+      });
+    }
+
     return res.json({ message: "Property found", property: showproperty });
   } catch (err) {
-    console.log(err);
+    console.error("Error in findproperty:", err);
     res.status(500).json({
-      message: "Property can't be found",
+      message: "An unexpected error occurred while fetching the property",
       error: err.message,
       success: false,
     });

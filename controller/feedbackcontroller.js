@@ -5,7 +5,12 @@ import property from "../model/propertyschema.js";
 export const addfeedback = async (req, res) => {
   try {
     const { email, propertyId, rating, comment, userName } = req.body.data;
-    const feedbackadd = await feedback.insertOne({ email, propertyId, rating, comment, userName });
+
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return res.status(400).json({ message: "Invalid property ID format", success: false });
+    }
+
+    const feedbackadd = await feedback.create({ email, propertyId, rating, comment, userName });
 
     const feedBacks = await feedback.aggregate([
       {
@@ -31,13 +36,16 @@ export const addfeedback = async (req, res) => {
 export const getfeedback = async (req, res) => {
   try {
     const propertyId = req.params.id;
-    // console.log(propertyId);
+
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return res.status(400).json({ message: "Invalid property ID format", success: false });
+    }
+
     const feedbacks = await feedback.find({ propertyId: propertyId });
-    // console.log(feedbacks);
     res.status(200).json({ message: "feedback fetched successfully", data: feedbacks, success: true });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "error occured while fetching feedback" });
+    console.error("Error in getfeedback:", err);
+    res.status(500).json({ message: "An error occurred while fetching feedback" });
   }
 };
 
