@@ -62,11 +62,18 @@ export const addproperty = async (req, res) => {
     const sanitizedLocation = location && location !== "" ? location : undefined;
     const sanitizedPropertyTypeCategory = propertyTypeCategory && propertyTypeCategory !== "" ? propertyTypeCategory : undefined;
 
-    // Generate unique property code
-    // const propertyCode = await generateUniquePropertyCode();
+    // Generate unique property code if not provided
+    const finalPropertyCode = propertyCode && propertyCode.trim() !== "" 
+      ? propertyCode 
+      : await generateUniquePropertyCode();
+    
+    // Validate length if provided manually
+    if (propertyCode && (propertyCode.length < 4 || propertyCode.length > 6)) {
+       // Optional: could add validation here, but sticking to fixing the bug first
+    }
 
     const createproperty = await property.create({
-      propertyCode,
+      propertyCode: finalPropertyCode,
       title,
       description,
       location: sanitizedLocation,
