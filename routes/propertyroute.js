@@ -1,3 +1,4 @@
+import express from 'express';
 import { findproperty, addproperty, updateproperty, deleteproperty, getPropertyCountsByType } from '../controller/propertycontroller.js';
 import { propertylist } from '../controller/listingcontroller.js';
 import { adminmiddle } from '../middleware/adminmiddleware.js';
