@@ -301,3 +301,41 @@ export const findproperty = async (req, res) => {
 };
 
 // ============ SEARCH PROPERTIES ============
+
+// ============ GET PROPERTY COUNTS BY TYPE ============
+export const getPropertyCountsByType = async (req, res) => {
+  try {
+    const counts = await property.aggregate([
+      {
+        $group: {
+          _id: "$propertyType",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = {
+      rent: 0,
+      buy: 0,
+      lease: 0,
+    };
+
+    counts.forEach((item) => {
+      if (item._id && result.hasOwnProperty(item._id)) {
+        result[item._id] = item.count;
+      }
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    console.error("Error in getPropertyCountsByType:", err);
+    res.status(500).json({
+      success: false,
+      message: "Could not fetch property counts",
+      error: err.message,
+    });
+  }
+};
