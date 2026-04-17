@@ -222,3 +222,114 @@ export const getNearbyLocations = async (req, res) => {
     return res.status(500).json({ message: "Error fetching nearby locations" });
   }
 };
+
+// ─── Google Places Integration ──────────────────────────────────────────────
+
+export const getGoogleNearby = async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    const apiKey = process.env.PLACES_API_KEY;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ message: "Latitude and Longitude are required" });
+    }
+
+    // Nearby Search to find localities/sublocalities
+    // Using rankby=distance requires removing radius
+    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=locality|sublocality|neighborhood&key=${apiKey}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      throw new Error(data.error_message || "Google API error");
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: data.results || []
+    });
+  } catch (err) {
+    console.error("Google Nearby Error Details:", err.message || err);
+    return res.status(500).json({ 
+      message: "Failed to fetch from Google",
+      error: err.message || "Unknown error"
+    });
+  }
+};
+
+
+export const getGoogleAutocomplete = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const apiKey = process.env.PLACES_API_KEY;
+
+    if (!query) return res.status(200).json({ data: [] });
+
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(regions)&components=country:in&key=${apiKey}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return res.status(200).json({
+      success: true,
+      data: data.predictions || []
+    });
+  } catch (err) {
+    console.error("Google Autocomplete Error:", err);
+    return res.status(500).json({ message: "Failed to fetch from Google" });
+  }
+};
+
+export const integratePlace = async (req, res) => {
+  try {
+    const { placeId, title } = req.body;
+    const apiKey = process.env.PLACES_API_KEY;
+
+    if (!placeId) return res.status(400).json({ message: "Place ID is required" });
+
+    // Check if location already exists by title (fuzzy match or exact)
+    let existing = await location.findOne({ 
+      $or: [
+        { title: { $regex: new RegExp(`^${title}$`, "i") } },
+        { googlePlaceId: placeId }
+      ]
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        message: "Location already integrated",
+        data: existing
+      });
+    }
+
+    // Fetch details to get lat/lng
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,geometry,formatted_address&key=${apiKey}`;
+    const response = await fetch(detailsUrl);
+    const details = await response.json();
+
+    if (details.status !== "OK") {
+      throw new Error(details.error_message || "Failed to fetch place details");
+    }
+
+    const { location: coords } = details.result.geometry;
+
+    const newLocation = await location.create({
+      title: title || details.result.name,
+      description: details.result.formatted_address,
+      latitude: coords.lat,
+      longitude: coords.lng,
+      googlePlaceId: placeId,
+      importantLocation: false
+    });
+
+    return res.status(201).json({
+      message: "Location integrated successfully",
+      data: newLocation
+    });
+  } catch (err) {
+    console.error("Integration Error:", err);
+    return res.status(500).json({ message: "Failed to integrate location" });
+  }
+};
+

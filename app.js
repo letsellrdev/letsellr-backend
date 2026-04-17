@@ -24,6 +24,7 @@ import propertyTypeRouter from "./routes/propertytyperouter.js";
 import settingsRouter from "./routes/settingsrouter.js";
 import statisticRouter from "./routes/statistic.router.js";
 import testimonialRouter from "./routes/testimonial.router.js";
+import sitemapRouter from "./routes/sitemaproute.js";
 
 // Import passport config
 import "./passport.js";
@@ -72,22 +73,24 @@ app.use(passport.session());
 
 app.use("/alive", (req, res) => res.send("Yep, i am alive (letsellr backend)"));
 
+app.use("/", sitemapRouter);
 // Routes
 // app.use("/letseller/show", listing); // Removed
-app.use("/letseller/admin", adminrouter);
-app.use("/letseller/property", propertyrouter);
-app.use("/letseller/category", categoryrouter);
-app.use("/letseller/location", locationrouter);
-app.use("/letseller/user", userrouter);
-app.use("/letseller/feedback", feedbackrouter);
-app.use("/letseller/auth", authRoutes);
-app.use("/letseller/propertytype", propertyTypeRouter);
-app.use("/letseller/settings", settingsRouter);
-app.use("/letseller/statistic", statisticRouter);
-app.use("/letseller/testimonial", testimonialRouter);
+app.use("/letsellr/admin", adminrouter);
+app.use("/letsellr/property", propertyrouter);
+app.use("/letsellr/category", categoryrouter);
+app.use("/letsellr/location", locationrouter);
+app.use("/letsellr/user", userrouter);
+app.use("/letsellr/feedback", feedbackrouter);
+app.use("/letsellr/auth", authRoutes);
+app.use("/letsellr/propertytype", propertyTypeRouter);
+app.use("/letsellr/settings", settingsRouter);
+app.use("/letsellr/statistic", statisticRouter);
+app.use("/letsellr/testimonial", testimonialRouter);
 
 // Protected route example
-app.get("/letseller/protected", (req, res) => {
+app.get("/letsellr/protected", (req, res) => {
+
   if (req.isAuthenticated && req.isAuthenticated()) {
     return res.send(`Hello ${req.user.email}`);
   }

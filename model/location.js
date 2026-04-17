@@ -12,14 +12,16 @@ const model = new mongoose.Schema({
   },
   googleMapUrl: {
     type: String,
-    required: true
+    required: false
   },
   importantLocation: {
     type: Boolean,
     default: false
   },
   latitude: { type: Number, default: null },
-  longitude: { type: Number, default: null }
+  longitude: { type: Number, default: null },
+  googlePlaceId: { type: String, default: null }
+
 }, {
   timestamps: true
 });
