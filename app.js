@@ -74,6 +74,15 @@ app.use(passport.session());
 app.use("/alive", (req, res) => res.send("Yep, i am alive (letsellr backend)"));
 
 app.use("/", sitemapRouter);
+
+// Alias middleware for production typo
+app.use((req, res, next) => {
+  if (req.url.startsWith('/letseller/')) {
+    req.url = req.url.replace('/letseller/', '/letsellr/');
+  }
+  next();
+});
+
 // Routes
 // app.use("/letseller/show", listing); // Removed
 app.use("/letsellr/admin", adminrouter);
