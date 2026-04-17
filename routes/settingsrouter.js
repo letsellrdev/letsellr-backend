@@ -5,7 +5,7 @@ import {
   updateSetting,
   deleteSetting
 } from '../controller/settingscontroller.js';
-import { adminmiddle } from '../middleware/adminmiddleware.js';
+import { adminmiddle, adminOnly } from '../middleware/adminmiddleware.js';
 
 const settingsRouter = express.Router();
 
@@ -14,8 +14,7 @@ settingsRouter.get("/:key", getSetting); // Replaces /get/:key
 settingsRouter.get("/", getAllSettings); // Replaces /all
 
 // Protected admin routes
-settingsRouter.use('/', adminmiddle);
-settingsRouter.post("/", updateSetting); // Replaces /update
-settingsRouter.delete("/:key", deleteSetting); // Replaces /delete/:key
+settingsRouter.post("/", adminmiddle, adminOnly, updateSetting); // Replaces /update
+settingsRouter.delete("/:key", adminmiddle, adminOnly, deleteSetting); // Replaces /delete/:key
 
 export default settingsRouter;

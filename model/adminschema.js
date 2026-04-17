@@ -13,6 +13,11 @@ const model = new schema({
     password:{
         type:String,
         require:true
+    },
+    role:{
+        type:String,
+        enum:['superadmin', 'admin', 'manager'],
+        default:'manager'
     }
 })
 const admin = mongoose.model("admin",model,"admin");

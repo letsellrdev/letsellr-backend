@@ -1,12 +1,9 @@
-import express from "express";
-import {
-  getStatistics,
-  createStatistic,
-  updateStatistic,
-  deleteStatistic,
-} from "../controller/statistic.controller.js";
-
+import { adminmiddle, adminOnly } from '../middleware/adminmiddleware.js';
+import express from 'express';
+import { getStatistics, createStatistic, updateStatistic, deleteStatistic } from '../controller/statistic.controller.js';
 const router = express.Router();
+
+router.use(adminmiddle, adminOnly);
 
 router.get("/", getStatistics);
 router.post("/", createStatistic);

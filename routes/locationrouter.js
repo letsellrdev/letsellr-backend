@@ -12,7 +12,7 @@ import {
   integratePlace
 } from '../controller/locationcontroller.js';
 
-import { adminmiddle } from '../middleware/adminmiddleware.js';
+import { adminmiddle, adminOnly } from '../middleware/adminmiddleware.js';
 
 const locationrouter = express.Router();
 
@@ -25,13 +25,12 @@ locationrouter.get("/:id", getLocationById);
 locationrouter.get("/", getAllLocations); 
 
 // Admin or logic-driven integration
-locationrouter.post("/integrate", integratePlace);
+locationrouter.post("/integrate", adminmiddle, adminOnly, integratePlace);
 
 
 // Admin routes (authentication required)
-locationrouter.use('/', adminmiddle);
-locationrouter.post("/", addLocation); // Replaces /addlocation
-locationrouter.put("/:id", updateLocation); // Replaces /updatelocation/:id
-locationrouter.delete("/:id", deleteLocation); // Replaces /deletelocation/:id
+locationrouter.post("/", adminmiddle, adminOnly, addLocation); 
+locationrouter.put("/:id", adminmiddle, adminOnly, updateLocation);
+locationrouter.delete("/:id", adminmiddle, adminOnly, deleteLocation);
 
 export default locationrouter;

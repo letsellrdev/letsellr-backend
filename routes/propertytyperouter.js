@@ -6,16 +6,14 @@ import {
   getPropertyTypeById,
   getAllPropertyTypes,
 } from "../controller/propertytypecontroller.js";
-import { adminmiddle } from "../middleware/adminmiddleware.js";
+import { adminmiddle, adminOnly } from "../middleware/adminmiddleware.js";
 
 const propertyTypeRouter = express.Router();
 propertyTypeRouter.get("/:id", getPropertyTypeById); // Replaces /getpropertytype/:id
 propertyTypeRouter.get("/", getAllPropertyTypes); // Replaces /fullpropertytypes
 
-propertyTypeRouter.use("/", adminmiddle);
-
-propertyTypeRouter.post("/", addPropertyType); // Replaces /addpropertytype
-propertyTypeRouter.put("/:id", updatePropertyType); // Replaces /updatepropertytype/:id
-propertyTypeRouter.delete("/:id", deletePropertyType); // Replaces /deletepropertytype/:id
+propertyTypeRouter.post("/", adminmiddle, adminOnly, addPropertyType); // Replaces /addpropertytype
+propertyTypeRouter.put("/:id", adminmiddle, adminOnly, updatePropertyType); // Replaces /updatepropertytype/:id
+propertyTypeRouter.delete("/:id", adminmiddle, adminOnly, deletePropertyType); // Replaces /deletepropertytype/:id
 
 export default propertyTypeRouter;
