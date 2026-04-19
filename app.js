@@ -25,6 +25,7 @@ import settingsRouter from "./routes/settingsrouter.js";
 
 import testimonialRouter from "./routes/testimonial.router.js";
 import sitemapRouter from "./routes/sitemaproute.js";
+import seoRouter from "./routes/seorouter.js";
 
 // Import passport config
 import "./passport.js";
@@ -96,6 +97,7 @@ app.use("/letsellr/propertytype", propertyTypeRouter);
 app.use("/letsellr/settings", settingsRouter);
 
 app.use("/letsellr/testimonial", testimonialRouter);
+app.use("/letsellr/seo", seoRouter);
 
 // Protected route example
 app.get("/letsellr/protected", (req, res) => {

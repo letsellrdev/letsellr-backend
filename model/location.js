@@ -20,7 +20,9 @@ const model = new mongoose.Schema({
   },
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },
-  googlePlaceId: { type: String, default: null }
+  googlePlaceId: { type: String, default: null },
+  metaTitle: { type: String },
+  metaDescription: { type: String }
 
 }, {
   timestamps: true

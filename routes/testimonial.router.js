@@ -4,11 +4,9 @@ import { getTestimonials, createTestimonial, updateTestimonial, deleteTestimonia
 
 const router = express.Router();
 
-router.use(adminmiddle, adminOnly);
-
 router.get("/", getTestimonials);
-router.post("/", createTestimonial);
-router.put("/:id", updateTestimonial);
-router.delete("/:id", deleteTestimonial);
+router.post("/", adminmiddle, adminOnly, createTestimonial);
+router.put("/:id", adminmiddle, adminOnly, updateTestimonial);
+router.delete("/:id", adminmiddle, adminOnly, deleteTestimonial);
 
 export default router;

@@ -1,5 +1,6 @@
 import location from "../model/location.js";
 import property from "../model/propertyschema.js";
+import mongoose from "mongoose";
 
 const extractCoords = (url) => {
   if (!url) return null;
@@ -126,9 +127,16 @@ export const deleteLocation = async (req, res) => {
 export const getLocationById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("Fetching location with ID:", id);
+    console.log("Fetching location with ID or title:", id);
 
-    const loc = await location.findById(id);
+    let loc;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      loc = await location.findById(id);
+    } else {
+      // If not a valid ObjectId, search by title (slug-like)
+      loc = await location.findOne({ title: { $regex: new RegExp(`^${id}$`, "i") } });
+    }
+
     if (!loc) {
       return res.status(404).json({ message: "Location not found" });
     }

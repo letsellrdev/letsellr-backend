@@ -338,4 +338,38 @@ export const getPropertyCountsByType = async (req, res) => {
       error: err.message,
     });
   }
-};
+};
+
+// ============ GET FEATURED PROPERTIES ============
+export const getFeaturedProperties = async (req, res) => {
+  try {
+    // Featured logic: TOP 8 highest rated properties
+    const featured = await property
+      .find()
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(8)
+      .populate("category", "name image")
+      .populate("location", "title");
+
+    res.json({ success: true, properties: featured });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ============ GET LATEST PROPERTIES ============
+export const getLatestProperties = async (req, res) => {
+  try {
+    // Latest logic: TOP 8 most recently updated properties
+    const latest = await property
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .populate("category", "name image")
+      .populate("location", "title");
+
+    res.json({ success: true, properties: latest });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

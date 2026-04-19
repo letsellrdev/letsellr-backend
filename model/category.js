@@ -3,6 +3,8 @@ const model = new mongoose.Schema({
   name: { type: String, required: true },
   image: { type: String },
   description: { type: String, required: true },
+  metaTitle: { type: String },
+  metaDescription: { type: String },
 });
 const category = mongoose.model("category", model, "category");
 export default category;
