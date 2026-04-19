@@ -134,7 +134,13 @@ export const getLocationById = async (req, res) => {
       loc = await location.findById(id);
     } else {
       // If not a valid ObjectId, search by title (slug-like)
+      // Try exact match first
       loc = await location.findOne({ title: { $regex: new RegExp(`^${id}$`, "i") } });
+      
+      // If no exact match, try partial match in title
+      if (!loc) {
+        loc = await location.findOne({ title: { $regex: new RegExp(id, "i") } });
+      }
     }
 
     if (!loc) {
