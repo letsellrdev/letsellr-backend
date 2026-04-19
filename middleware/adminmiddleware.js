@@ -13,8 +13,8 @@ export const superAdminOnly = (req, res, next) => {
 }
 
 export const adminOnly = (req, res, next) => {
-    if (req.session.role !== 'superadmin' && req.session.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin or Superadmin required.", success: false })
+    if (req.session.role !== 'superadmin' && req.session.role !== 'admin' && req.session.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied. Admin, Superadmin or Manager required.", success: false })
     }
     next()
 }

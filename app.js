@@ -22,7 +22,7 @@ import { feedbackrouter } from "./routes/feedbackrouter.js";
 import authRoutes from "./routes/authRoutes.js";
 import propertyTypeRouter from "./routes/propertytyperouter.js";
 import settingsRouter from "./routes/settingsrouter.js";
-import statisticRouter from "./routes/statistic.router.js";
+
 import testimonialRouter from "./routes/testimonial.router.js";
 import sitemapRouter from "./routes/sitemaproute.js";
 
@@ -94,7 +94,7 @@ app.use("/letsellr/feedback", feedbackrouter);
 app.use("/letsellr/auth", authRoutes);
 app.use("/letsellr/propertytype", propertyTypeRouter);
 app.use("/letsellr/settings", settingsRouter);
-app.use("/letsellr/statistic", statisticRouter);
+
 app.use("/letsellr/testimonial", testimonialRouter);
 
 // Protected route example
