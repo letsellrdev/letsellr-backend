@@ -55,13 +55,12 @@ export const getallfeedback = async (req, res) => {
     const feedbackCount = feedbacks.length;
 
     const formatted = feedbacks.map((fb) => {
-      const property = fb.propertyId;
-      console.log(property);
+      const propertyItem = fb.propertyId;
       return {
         ...fb.toObject(),
-        propertyName: property ? property.title : "Property not found",
-        propertyId: fb.propertyId._id,
-        date: fb.createdAt.toLocaleDateString(),
+        propertyName: propertyItem ? propertyItem.title : "Property not found",
+        propertyId: propertyItem ? propertyItem._id : null,
+        date: fb.createdAt ? fb.createdAt.toLocaleDateString() : "No date",
       };
     });
     res.status(200).json({ message: "all feedback fetched successfully", data: formatted, success: true, count: feedbackCount });
@@ -74,6 +73,11 @@ export const getallfeedback = async (req, res) => {
 export const deletefeedback = async (req, res) => {
   try {
     const feedbackId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(feedbackId)) {
+      return res.status(400).json({ message: "Invalid feedback ID format", success: false });
+    }
+
     await feedback.deleteOne({ _id: feedbackId });
     res.status(200).json({ message: "feedback deleted successfully", success: true });
   } catch (err) {

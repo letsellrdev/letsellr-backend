@@ -248,9 +248,9 @@ export const getGoogleNearby = async (req, res) => {
       return res.status(400).json({ message: "Latitude and Longitude are required" });
     }
 
-    // Nearby Search to find localities/sublocalities
-    // Using rankby=distance requires removing radius
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=locality|sublocality|neighborhood&key=${apiKey}`;
+    // Nearby Search to find localities/sublocalities and points of interest
+    // Using rankby=distance requires removing radius. We use a broader type to get more results.
+    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=point_of_interest|locality|sublocality|neighborhood&key=${apiKey}`;
 
     const response = await fetch(url);
     const data = await response.json();
@@ -280,7 +280,8 @@ export const getGoogleAutocomplete = async (req, res) => {
 
     if (!query) return res.status(200).json({ data: [] });
 
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(regions)&components=country:in&key=${apiKey}`;
+    // Remove types=(regions) to allow searching for any place (landmarks, shops, etc.) by name
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&components=country:in&key=${apiKey}`;
 
     const response = await fetch(url);
     const data = await response.json();
