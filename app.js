@@ -67,11 +67,11 @@ app.use(
     store: MongoStore.create({ mongoUrl: process.env.URI }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      // secure:true is REQUIRED on Render (HTTPS) so the browser sends the cookie.
-      // sameSite "none" is required when secure is true (cross-origin cookie policy).
-      secure: isProd,
+      // On Render (production), we MUST use secure: true and sameSite: 'none'
+      // because the frontend and backend are on different domains.
+      secure: isProd || process.env.RENDER === "true", 
       httpOnly: true,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: (isProd || process.env.RENDER === "true") ? "none" : "lax",
     },
   })
 );
