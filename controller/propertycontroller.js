@@ -1,14 +1,57 @@
 import category from "../model/category.js";
 import property from "../model/propertyschema.js";
 import location from "../model/location.js";
-import AWS from "aws-sdk";
+import ImageKit from "@imagekit/nodejs";
 import mongoose from "mongoose";
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
+const imagekit = new ImageKit({
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
 });
+
+/**
+ * Extract the ImageKit file path from a full URL.
+ * e.g. https://ik.imagekit.io/assets01/uploads/1234-photo.jpg  →  /uploads/1234-photo.jpg
+ */
+const getImageKitFilePath = (url) => {
+  try {
+    const endpoint = process.env.IMAGEKIT_URL_ENDPOINT; // https://ik.imagekit.io/assets01
+    if (endpoint && url.startsWith(endpoint)) {
+      return url.slice(endpoint.length); // /uploads/...
+    }
+    // Fallback: strip protocol + host
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+};
+
+/**
+ * Delete a single file from ImageKit by its full URL.
+ * Uses the Files Search API to resolve the fileId then deletes it.
+ */
+const deleteImageKitFile = async (fileUrl) => {
+  try {
+    const filePath = getImageKitFilePath(fileUrl);
+    // Search for the file by path
+    const searchResult = await imagekit.files.list({ searchQuery: `filePath = "${filePath}"` });
+    if (searchResult && searchResult.length > 0) {
+      const fileId = searchResult[0].fileId;
+      await imagekit.files.delete(fileId);
+      console.log(`Deleted ImageKit file: ${filePath} (id: ${fileId})`);
+    } else {
+      console.warn(`ImageKit file not found for path: ${filePath}`);
+    }
+  } catch (err) {
+    console.error(`Failed to delete ImageKit file (${fileUrl}):`, err.message);
+  }
+};
+
+/**
+ * Delete multiple files from ImageKit by their full URLs.
+ */
+const deleteImageKitFiles = async (fileUrls) => {
+  await Promise.allSettled(fileUrls.map(deleteImageKitFile));
+};
 
 // ============ GENERATE UNIQUE PROPERTY CODE ============
 // ============ GENERATE UNIQUE PROPERTY CODE ============
@@ -209,20 +252,11 @@ export const updateproperty = async (req, res) => {
       prop.images = Array.isArray(images) ? images : [images];
     }
 
-    // Delete a specific image (DB + S3)
+    // Delete a specific image (DB + ImageKit)
     if (removeImage) {
       prop.images = prop.images.filter((img) => img !== removeImage);
-
-      // Extract S3 key from full URL
-      const key = removeImage.split(".amazonaws.com/")[1];
-      if (key) {
-        await s3
-          .deleteObject({
-            Bucket: process.env.AWS_S3_BUCKET,
-            Key: key,
-          })
-          .promise();
-      }
+      // Fire-and-forget deletion from ImageKit
+      deleteImageKitFile(removeImage).catch(() => {});
     }
     await prop.save();
 
@@ -242,18 +276,9 @@ export const deleteproperty = async (req, res) => {
 
     if (!propertydelete) return res.status(404).json({ message: "Property not found" });
 
-    // Delete all property images from S3
+    // Delete all property images from ImageKit (non-blocking)
     if (propertydelete.images && propertydelete.images.length > 0) {
-      const objects = propertydelete.images.map((img) => ({
-        Key: img.split(".amazonaws.com/")[1],
-      }));
-
-      await s3
-        .deleteObjects({
-          Bucket: process.env.AWS_S3_BUCKET,
-          Delete: { Objects: objects },
-        })
-        .promise();
+      deleteImageKitFiles(propertydelete.images).catch(() => {});
     }
 
     res.json({ message: "Property deleted successfully", property: propertydelete });
