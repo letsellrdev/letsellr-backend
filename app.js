@@ -52,7 +52,12 @@ app.use((req, res, next) => {
 
 // "http://localhost:8080", "http://localhost:5173", "http://13.232.71.99", "https://letsellr.shanuvr.in"
 
+// Trust the first proxy (Render, Nginx, etc.) so that req.protocol === "https"
+// and secure cookies are correctly set behind an HTTPS reverse proxy.
+app.set("trust proxy", 1);
+
 // Session + store
+const isProd = process.env.NODE_ENV === "production";
 app.use(
   session({
     name: "letsellr_admin_sid",
@@ -62,9 +67,11 @@ app.use(
     store: MongoStore.create({ mongoUrl: process.env.URI }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      secure: false, // Set to true if using HTTPS
+      // secure:true is REQUIRED on Render (HTTPS) so the browser sends the cookie.
+      // sameSite "none" is required when secure is true (cross-origin cookie policy).
+      secure: isProd,
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: isProd ? "none" : "lax",
     },
   })
 );
