@@ -254,7 +254,7 @@ export const updateproperty = async (req, res) => {
 
     // Delete a specific image (DB + ImageKit)
     if (removeImage) {
-      prop.images = prop.images.filter((img) => img !== removeImage);
+      prop.images = prop.images.filter((img) => (typeof img === 'string' ? img : img.url) !== removeImage);
       // Fire-and-forget deletion from ImageKit
       deleteImageKitFile(removeImage).catch(() => {});
     }
@@ -278,7 +278,8 @@ export const deleteproperty = async (req, res) => {
 
     // Delete all property images from ImageKit (non-blocking)
     if (propertydelete.images && propertydelete.images.length > 0) {
-      deleteImageKitFiles(propertydelete.images).catch(() => {});
+      const imageUrls = propertydelete.images.map(img => typeof img === 'string' ? img : img.url);
+      deleteImageKitFiles(imageUrls).catch(() => {});
     }
 
     res.json({ message: "Property deleted successfully", property: propertydelete });

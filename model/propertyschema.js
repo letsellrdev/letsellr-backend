@@ -38,9 +38,12 @@ const model = new schema({
     ref: "location",
     required: true,
   },
-  images: {
-    type: [String],
-  },
+  images: [
+    {
+      url: { type: String, required: true },
+      alt: { type: String, default: "" },
+    },
+  ],
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "category",
