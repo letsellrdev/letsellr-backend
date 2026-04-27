@@ -139,6 +139,21 @@ export const addproperty = async (req, res) => {
        // Optional: could add validation here, but sticking to fixing the bug first
     }
 
+    // Sanitize images array: ensure every element is an object { url, alt }
+    const sanitizeImage = (img) => {
+      if (typeof img === 'string') return { url: img, alt: "" };
+      if (img && typeof img === 'object') {
+        // Handle common variations of URL field names
+        return { 
+          url: img.url || img.image || img.fileUrl || "", 
+          alt: img.alt || "" 
+        };
+      }
+      return { url: "", alt: "" };
+    };
+
+    const sanitizedImages = (images || []).map(sanitizeImage);
+
     console.log("[Performance] Creating property in DB");
     const dbStart = Date.now();
     const createproperty = await property.create({
@@ -148,7 +163,7 @@ export const addproperty = async (req, res) => {
       location: sanitizedLocation,
       category: sanitizedCategory,
       amenity,
-      images, // Array of S3 URLs
+      images: sanitizedImages,
       price: price || [], // save price array
       contactNumber,
       propertyType,
@@ -240,16 +255,41 @@ export const updateproperty = async (req, res) => {
       prop.vacancyCount = vacancyCount;
     }
 
-    // Replace all images
-    // Add new images safely
-    if (addImages) {
-      const newImages = Array.isArray(addImages) ? addImages : [addImages];
-      prop.images.push(...newImages);
-    }
+    const sanitizeImage = (img) => {
+      if (typeof img === 'string') return { url: img, alt: "" };
+      if (img && typeof img === 'object') {
+        return { 
+          url: img.url || img.image || img.fileUrl || "", 
+          alt: img.alt || "" 
+        };
+      }
+      return { url: "", alt: "" };
+    };
 
     // Replace all images safely
     if (images) {
-      prop.images = Array.isArray(images) ? images : [images];
+      const sanitizedImages = (Array.isArray(images) ? images : [images]).map(sanitizeImage);
+      
+      // Delete removed images from ImageKit
+      const currentImages = prop.images || [];
+      const newUrls = sanitizedImages.map(img => img.url);
+      const removedImages = currentImages.filter(img => {
+        const oldUrl = typeof img === 'string' ? img : img.url;
+        return oldUrl && !newUrls.includes(oldUrl);
+      });
+      
+      if (removedImages.length > 0) {
+        const removedUrls = removedImages.map(img => typeof img === 'string' ? img : img.url);
+        deleteImageKitFiles(removedUrls).catch(() => {});
+      }
+
+      prop.images = sanitizedImages;
+    }
+
+    // Add new images safely
+    if (addImages) {
+      const newImages = (Array.isArray(addImages) ? addImages : [addImages]).map(sanitizeImage);
+      prop.images.push(...newImages);
     }
 
     // Delete a specific image (DB + ImageKit)
