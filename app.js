@@ -30,6 +30,7 @@ import seoRouter from "./routes/seorouter.js";
 // Import passport config
 import "./passport.js";
 import morgan from "morgan";
+import compression from "compression";
 
 const app = express();
 
@@ -39,16 +40,15 @@ const __dirname = path.dirname(__filename);
 // Serve uploads folder statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Middleware
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.use((req, res, next) => {
-  cors({
-    origin: [req.headers.origin],
-    credentials: true,
-  })(req, res, next);
-});
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 
 // "http://localhost:8080", "http://localhost:5173", "http://13.232.71.99", "https://letsellr.shanuvr.in"
 
@@ -117,7 +117,11 @@ app.get("/letsellr/protected", (req, res) => {
 
 // DB & Server start
 mongoose
-  .connect(process.env.URI)
+  .connect(process.env.URI, {
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  })
   .then(() => {
     console.log("✅ Database connected successfully");
 

@@ -133,13 +133,12 @@ export const getLocationById = async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(id)) {
       loc = await location.findById(id);
     } else {
-      // If not a valid ObjectId, search by title (slug-like)
-      // Try exact match first
-      loc = await location.findOne({ title: { $regex: new RegExp(`^${id}$`, "i") } });
+      // Use a simpler case-insensitive match for titles
+      loc = await location.findOne({ title: id }).collation({ locale: 'en', strength: 2 });
       
-      // If no exact match, try partial match in title
       if (!loc) {
-        loc = await location.findOne({ title: { $regex: new RegExp(id, "i") } });
+        // Fallback to regex only if exact collation match fails
+        loc = await location.findOne({ title: { $regex: new RegExp(`^${id}$`, "i") } });
       }
     }
 

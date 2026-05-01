@@ -80,6 +80,14 @@ const model = new schema({
   timestamps: true, // Automatically adds createdAt and updatedAt fields
 });
 
+// Optimization Indexes
+model.index({ propertyType: 1 });
+model.index({ rating: -1 });
+model.index({ createdAt: -1 });
+model.index({ location: 1 });
+model.index({ category: 1 });
+model.index({ propertyCode: 1 });
+
 const property = mongoose.model("property", model, "property");
 
 export default property;
