@@ -206,23 +206,43 @@ export const getNearbyLocations = async (req, res) => {
     const userLng = parseFloat(lng);
 
     const allLocations = await location.find({
-      latitude: { $ne: null },
-      longitude: { $ne: null },
+      $or: [
+        { latitude: { $ne: null }, longitude: { $ne: null } },
+        { googleMapUrl: { $ne: null, $ne: "" } }
+      ]
     });
 
     const nearby = allLocations
       .map((loc) => {
+        let locLat = loc.latitude;
+        let locLng = loc.longitude;
+
+        if (!locLat || !locLng) {
+          if (loc.googleMapUrl) {
+            const coords = extractCoords(loc.googleMapUrl);
+            if (coords) {
+              locLat = coords.lat;
+              locLng = coords.lng;
+            }
+          }
+        }
+
+        if (!locLat || !locLng) return null;
+
         const distance = getDistance(
           userLat,
           userLng,
-          loc.latitude,
-          loc.longitude
+          locLat,
+          locLng
         );
         return {
           ...loc.toObject(),
+          latitude: locLat,
+          longitude: locLng,
           distance: Math.round(distance * 10) / 10, // Round to 1 decimal
         };
       })
+      .filter(Boolean)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 10); // Return top 10 closest
 
@@ -247,25 +267,32 @@ export const getGoogleNearby = async (req, res) => {
       return res.status(400).json({ message: "Latitude and Longitude are required" });
     }
 
-    // Nearby Search to find localities/sublocalities and points of interest
-    // Using rankby=distance requires removing radius. We use a broader type to get more results.
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=point_of_interest|locality|sublocality|neighborhood&key=${apiKey}`;
+    // Using Geoapify Places API to find nearby places
+    const url = `https://api.geoapify.com/v2/places?categories=commercial,populated_place,building,amenity&filter=circle:${lng},${lat},5000&limit=20&apiKey=${apiKey}`;
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(data.error_message || "Google API error");
+    if (data.statusCode && data.statusCode !== 200) {
+      throw new Error(data.message || "Geoapify API error");
     }
+
+    const results = (data.features || []).map(f => ({
+      place_id: f.properties.place_id,
+      name: f.properties.name || f.properties.formatted || "Unknown Place",
+      geometry: {
+        location: { lat: f.properties.lat, lng: f.properties.lon }
+      }
+    }));
 
     return res.status(200).json({
       success: true,
-      data: data.results || []
+      data: results
     });
   } catch (err) {
-    console.error("Google Nearby Error Details:", err.message || err);
+    console.error("Geoapify Nearby Error Details:", err.message || err);
     return res.status(500).json({ 
-      message: "Failed to fetch from Google",
+      message: "Failed to fetch from Geoapify",
       error: err.message || "Unknown error"
     });
   }
@@ -279,19 +306,29 @@ export const getGoogleAutocomplete = async (req, res) => {
 
     if (!query) return res.status(200).json({ data: [] });
 
-    // Remove types=(regions) to allow searching for any place (landmarks, shops, etc.) by name
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&components=country:in&key=${apiKey}`;
+    // Autocomplete using Geoapify
+    const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&apiKey=${apiKey}`;
 
     const response = await fetch(url);
     const data = await response.json();
 
+    if (data.statusCode && data.statusCode !== 200) {
+      throw new Error(data.message || "Geoapify API error");
+    }
+
+    const predictions = (data.features || []).map(f => ({
+      place_id: f.properties.place_id,
+      description: f.properties.formatted,
+      structured_formatting: { main_text: f.properties.name || f.properties.city || f.properties.formatted }
+    }));
+
     return res.status(200).json({
       success: true,
-      data: data.predictions || []
+      data: predictions
     });
   } catch (err) {
-    console.error("Google Autocomplete Error:", err);
-    return res.status(500).json({ message: "Failed to fetch from Google" });
+    console.error("Geoapify Autocomplete Error:", err);
+    return res.status(500).json({ message: "Failed to fetch from Geoapify" });
   }
 };
 
@@ -317,22 +354,59 @@ export const integratePlace = async (req, res) => {
       });
     }
 
-    // Fetch details to get lat/lng
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,geometry,formatted_address&key=${apiKey}`;
+    // Fetch details to get lat/lng using Geoapify
+    const detailsUrl = `https://api.geoapify.com/v2/place-details?id=${placeId}&apiKey=${apiKey}`;
     const response = await fetch(detailsUrl);
     const details = await response.json();
 
-    if (details.status !== "OK") {
-      throw new Error(details.error_message || "Failed to fetch place details");
+    if (!details.features || details.features.length === 0) {
+      throw new Error(details.message || "Failed to fetch place details from Geoapify");
     }
 
-    const { location: coords } = details.result.geometry;
+    const feature = details.features[0];
+    const lat = feature.properties.lat;
+    const lon = feature.properties.lon;
+
+    // Check if coordinates match nearby any specific location available in the database
+    if (lat && lon) {
+      const allLocations = await location.find({
+        $or: [
+          { latitude: { $ne: null }, longitude: { $ne: null } },
+          { googleMapUrl: { $ne: null, $ne: "" } }
+        ]
+      });
+      
+      for (const loc of allLocations) {
+        let locLat = loc.latitude;
+        let locLng = loc.longitude;
+
+        if (!locLat || !locLng) {
+          if (loc.googleMapUrl) {
+            const coords = extractCoords(loc.googleMapUrl);
+            if (coords) {
+              locLat = coords.lat;
+              locLng = coords.lng;
+            }
+          }
+        }
+
+        if (locLat && locLng) {
+          const distance = getDistance(lat, lon, locLat, locLng);
+          if (distance <= 5) { // Return existing if within 5km
+            return res.status(200).json({
+              message: "Nearby location already exists in database",
+              data: loc
+            });
+          }
+        }
+      }
+    }
 
     const newLocation = await location.create({
-      title: title || details.result.name,
-      description: details.result.formatted_address,
-      latitude: coords.lat,
-      longitude: coords.lng,
+      title: title || feature.properties.name || feature.properties.formatted,
+      description: feature.properties.formatted,
+      latitude: lat,
+      longitude: lon,
       googlePlaceId: placeId,
       importantLocation: false
     });

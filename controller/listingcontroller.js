@@ -32,6 +32,35 @@ export const categorylist = async (req, res) => {
   }
 };
 
+const extractCoords = (url) => {
+  if (!url) return null;
+  // Patterns to match: @lat,lng  or q=lat,lng or ll=lat,lng
+  const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)|q=(-?\d+\.\d+),(-?\d+\.\d+)|ll=(-?\d+\.\d+),(-?\d+\.\d+)/;
+  const match = url.match(regex);
+  if (match) {
+    // Collect the first pair found
+    const lat = match[1] || match[3] || match[5];
+    const lng = match[2] || match[4] || match[6];
+    return { lat: parseFloat(lat), lng: parseFloat(lng) };
+  }
+  return null;
+};
+
+const getDistanceKM = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 export const propertylist = async (req, res) => {
   console.log(req.query)
   try {
@@ -60,9 +89,53 @@ export const propertylist = async (req, res) => {
       const regex = new RegExp(query, "i");
       match.$or = [{ title: regex }, { description: regex }, { propertyCode: regex }, { amenity: regex }];
     }
-    // Filter by location ID if provided
+    
+    // Filter by nearby locations if locationId is provided
     if (locationId && mongoose.Types.ObjectId.isValid(locationId)) {
-      match.location = new mongoose.Types.ObjectId(locationId);
+      const targetLocation = await location.findById(locationId);
+      if (targetLocation) {
+        let tLat = targetLocation.latitude;
+        let tLng = targetLocation.longitude;
+        if (!tLat || !tLng) {
+          if (targetLocation.googleMapUrl) {
+            const coords = extractCoords(targetLocation.googleMapUrl);
+            if (coords) {
+              tLat = coords.lat;
+              tLng = coords.lng;
+            }
+          }
+        }
+
+        if (tLat && tLng) {
+          const allLocations = await location.find({
+            $or: [
+              { latitude: { $ne: null }, longitude: { $ne: null } },
+              { googleMapUrl: { $ne: null, $ne: "" } }
+            ]
+          });
+          const nearbyIds = allLocations.filter(loc => {
+            let locLat = loc.latitude;
+            let locLng = loc.longitude;
+            if (!locLat || !locLng) {
+              if (loc.googleMapUrl) {
+                const coords = extractCoords(loc.googleMapUrl);
+                if (coords) {
+                  locLat = coords.lat;
+                  locLng = coords.lng;
+                }
+              }
+            }
+            if (!locLat || !locLng) return false;
+            
+            const dist = getDistanceKM(tLat, tLng, locLat, locLng);
+            return dist <= 15; // Match places within 15km
+          }).map(loc => loc._id);
+          
+          match.location = { $in: [new mongoose.Types.ObjectId(locationId), ...nearbyIds] };
+        } else {
+          match.location = new mongoose.Types.ObjectId(locationId);
+        }
+      }
     }
 
     const pipelineBase = [];

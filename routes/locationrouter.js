@@ -24,8 +24,8 @@ locationrouter.get("/nearby", getNearbyLocations);
 locationrouter.get("/:id", getLocationById);
 locationrouter.get("/", getAllLocations); 
 
-// Admin or logic-driven integration
-locationrouter.post("/integrate", adminmiddle, adminOnly, integratePlace);
+// Public or logic-driven integration
+locationrouter.post("/integrate", integratePlace);
 
 
 // Admin routes (authentication required)
