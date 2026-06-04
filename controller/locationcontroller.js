@@ -159,9 +159,14 @@ export const getLocationById = async (req, res) => {
 export const getAllLocations = async (req, res) => {
   try {
     const onlyImportantLocations = req.query.onlyImportantLocations === "true";
+    const propertyType = req.query.propertyType;
     
     // Get unique location IDs that have associated properties
-    const activeLocationIds = await property.distinct("location");
+    const propFilter = {};
+    if (propertyType) {
+      propFilter.propertyType = propertyType;
+    }
+    const activeLocationIds = await property.distinct("location", propFilter);
     
     const baseFilter = {
       _id: { $in: activeLocationIds }
