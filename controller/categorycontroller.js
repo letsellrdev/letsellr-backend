@@ -22,9 +22,9 @@ const getDistanceKM = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -146,49 +146,6 @@ export const getAllCategories = async (req, res) => {
 
     if (locationId && mongoose.Types.ObjectId.isValid(locationId)) {
       let locationIdsArray = [new mongoose.Types.ObjectId(locationId)];
-      const targetLocation = await location.findById(locationId);
-      
-      if (targetLocation) {
-        let tLat = targetLocation.latitude;
-        let tLng = targetLocation.longitude;
-        if (!tLat || !tLng) {
-          if (targetLocation.googleMapUrl) {
-            const coords = extractCoords(targetLocation.googleMapUrl);
-            if (coords) {
-              tLat = coords.lat;
-              tLng = coords.lng;
-            }
-          }
-        }
-
-        if (tLat && tLng) {
-          const allLocations = await location.find({
-            $or: [
-              { latitude: { $ne: null }, longitude: { $ne: null } },
-              { googleMapUrl: { $ne: null, $ne: "" } }
-            ]
-          });
-          const nearbyIds = allLocations.filter(loc => {
-            let locLat = loc.latitude;
-            let locLng = loc.longitude;
-            if (!locLat || !locLng) {
-              if (loc.googleMapUrl) {
-                const coords = extractCoords(loc.googleMapUrl);
-                if (coords) {
-                  locLat = coords.lat;
-                  locLng = coords.lng;
-                }
-              }
-            }
-            if (!locLat || !locLng) return false;
-            
-            const dist = getDistanceKM(tLat, tLng, locLat, locLng);
-            return dist <= 15;
-          }).map(loc => loc._id);
-          
-          locationIdsArray = [new mongoose.Types.ObjectId(locationId), ...nearbyIds];
-        }
-      }
 
       pipeline.push(
         {
